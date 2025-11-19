@@ -58,6 +58,20 @@ class _CurrentChatsViewState extends State<CurrentChatsView> {
         builder: (context, state) {
           var bloc = context.read<CurrentChatsBloc>();
 
+          if (state is LoadingCurrentChatsState) {
+            return ListView.builder(
+              itemCount: 8,
+              itemBuilder: (context, index) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                height: 70,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ).animate().shimmer(duration: 1200.ms, delay: (index * 100).ms),
+            );
+          }
+
           if (bloc.chats.isEmpty) {
             return const Center(
               child: Text(

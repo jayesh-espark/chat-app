@@ -21,6 +21,7 @@ class CurrentChatsBloc extends Bloc<CurrentChatsEvent, CurrentChatsState> {
     GetAllChatsEvent event,
     Emitter<CurrentChatsState> emit,
   ) async {
+    emit(LoadingCurrentChatsState());
     var userId = await LocalStorageApp().getUserId();
     chats = await ChatServices().getUserChats(userId);
     log("chats --> $chats");

@@ -6,6 +6,8 @@ final class CurrentChatListInitial extends CurrentChatsState {}
 
 final class GetAllChatsState extends CurrentChatsState {}
 
+final class LoadingCurrentChatsState extends CurrentChatsState {}
+
 class OpenChatState extends CurrentChatsState {
   final String chatId;
   final String userId;

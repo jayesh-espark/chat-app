@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:developer';
+import 'package:chating_app/app/app_services/biomatric_services.dart';
 import 'package:chating_app/app/core/storage/local_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -28,8 +30,21 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       emit(NavigateToLoginState());
       return;
     } else {
-      emit(NavigateToHomeState());
-      return;
+      if (await checkAppLocked()) {
+        var didAuthenticate = await BiometricAuthService().authenticate();
+        if (didAuthenticate) {
+          emit(NavigateToHomeState());
+          return;
+        }
+      } else {
+        emit(NavigateToHomeState());
+      }
     }
+  }
+
+  Future<bool> checkAppLocked() async {
+    bool isAppLock = await LocalStorageApp().isAppLocked();
+    bool isAvailable = await BiometricAuthService().isBiometricAvailable();
+    return isAvailable && isAppLock;
   }
 }

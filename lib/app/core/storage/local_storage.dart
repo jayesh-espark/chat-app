@@ -41,6 +41,23 @@ class LocalStorageApp {
     }
   }
 
+  Future<bool> isAppLocked() async {
+    try {
+      return bool.parse(
+        await _storage.read(key: AppConstants.keyBioMatricAuth) ?? "false",
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> saveAppLocked(bool user) async {
+    await _storage.write(
+      key: AppConstants.keyBioMatricAuth,
+      value: user.toString(),
+    );
+  }
+
   Future<String> getUserId() async {
     try {
       return await _storage.read(key: AppConstants.keyUserId) ?? "";

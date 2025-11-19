@@ -1,5 +1,8 @@
+import 'package:chating_app/app/core/utills/navigation_utils.dart';
 import 'package:chating_app/app/core/widgets/exit_dialog.dart';
 import 'package:chating_app/app/screens/home_screen/view/home_view/profile_screen/profile_bloc/profile_bloc.dart';
+import 'package:chating_app/app/screens/home_screen/view/home_view/setting_screen/edit_profile_view/edit_profile_view.dart';
+import 'package:chating_app/app/screens/home_screen/view/home_view/setting_screen/setting_view/setting_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -295,7 +298,7 @@ class _ProfileViewState extends State<ProfileView> {
                             icon: Icons.edit_outlined,
                             label: 'Edit Profile',
                             onTap: () {
-                              // Add edit profile action
+                              navigateTo(context, EditProfileScreen());
                             },
                             delay: 800,
                           ),
@@ -305,7 +308,7 @@ class _ProfileViewState extends State<ProfileView> {
                             icon: Icons.settings_outlined,
                             label: 'Settings',
                             onTap: () {
-                              // Add settings action
+                              navigateTo(context, SettingsScreen());
                             },
                             delay: 900,
                           ),

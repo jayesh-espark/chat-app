@@ -9,7 +9,6 @@ import 'app/core/utills/common_functions.dart';
 import 'app/core/widgets/common_loader.dart';
 import 'app/router/app_router.dart';
 import 'app/router/app_routes.dart';
-import 'app/screens/splash_screen/bloc/splash/splash_bloc.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
