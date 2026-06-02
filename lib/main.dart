@@ -15,8 +15,8 @@ Future<void> main() async {
 
   await dotenv.load(fileName: ".env");
   var supaBaseCred = await getSupBaseCred();
-  var SUPABASE_URL = supaBaseCred['url'] ?? "";
-  var SUPABASE_ANON_KEY = supaBaseCred['anonKey'] ?? "";
+  var SUPABASE_URL = supaBaseCred['url'] ?? " ";
+  var SUPABASE_ANON_KEY = supaBaseCred['anonKey'] ?? " ";
   await Supabase.initialize(url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY);
 
   runApp(const MyApp());
