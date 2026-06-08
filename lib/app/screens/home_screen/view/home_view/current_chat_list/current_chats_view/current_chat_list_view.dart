@@ -1,8 +1,6 @@
-import 'dart:developer';
 
 import 'package:chating_app/app/core/utills/navigation_utils.dart';
 import 'package:chating_app/app/router/app_routes.dart';
-import 'package:chating_app/app/screens/home_screen/bloc/home_bloc/home_bloc.dart';
 import 'package:chating_app/app/screens/home_screen/view/home_view/current_chat_list/current_chats_bloc/current_chats_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -47,10 +45,8 @@ class _CurrentChatsViewState extends State<CurrentChatsView> {
               context,
               AppRoutes.chatBubbleScreen,
               arguments: {
-                "chatId": state.chatId,
-                "userId": state.userId,
-                "user_name": state.userName,
-                "avatar": state.avatar,
+                "roomId": state.roomId,
+                "roomName": state.roomName,
               },
             );
           }
@@ -88,22 +84,19 @@ class _CurrentChatsViewState extends State<CurrentChatsView> {
               final chat = bloc.chats[index];
 
               return ChatTile(
-                    chat: chat,
-                    onTap: () {
-                      bloc.add(
-                        OpenChatEvent(
-                          userId: chat.userId,
-                          chatId: chat.id,
-                          avatar: chat.user?.avatarUrl ?? "",
-                          userName:
-                              "${chat.user?.firstName ?? ""} ${chat.user?.lastName ?? ""}",
-                        ),
-                      );
-                    },
-                  )
-                  .animate()
-                  .fadeIn(duration: 300.ms, delay: (index * 100).ms)
-                  .slideY(begin: 0.2, end: 0);
+                chat: chat,
+                onTap: () {
+                  bloc.add(
+                    OpenChatEvent(
+                      roomId: chat.id,
+                      roomName: chat.name,
+                    ),
+                  );
+                },
+              )
+              .animate()
+              .fadeIn(duration: 300.ms, delay: (index * 100).ms)
+              .slideY(begin: 0.2, end: 0);
             },
           );
         },

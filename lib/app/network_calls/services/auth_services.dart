@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'dart:developer';
+import 'package:http/http.dart' as http;
 
-import 'package:chating_app/app/core/storage/local_storage.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../../core/config/app_config.dart';
+import '../../core/storage/local_storage.dart';
 import '../../model/base_response.dart';
 import '../../model/user_model.dart';
 
@@ -11,149 +12,170 @@ class AuthServices {
   static final AuthServices _instance = AuthServices._();
   factory AuthServices() => _instance;
 
-  var client = Supabase.instance.client;
-  // ---------- SIGNUP ----------
-  Future<BaseResponseModel> signUp({
-    required String firstName,
-    required String lastName,
-    required String email,
-    required String password,
-    required DateTime dateOfBirth,
-    required String avatar, // optional
-  }) async {
-    try {
-      log("response entry 1");
-
-      // Create account
-      final response = await client.auth.signUp(
-        email: email,
-        password: password,
-      );
-
-      log("response entry 2 ${response.user?.toJson()}");
-      log("response entry 2 ${response.session?.toJson()}");
-
-      final user = response.user;
-      final session = response.session;
-      log("response entry 3");
-
-      if (user == null || session == null) {
-        return BaseResponseModel(
-          success: false,
-          message: "User or session is null",
-        );
-      }
-
-      log("response entry 4");
-
-      // Save session locally
-      await LocalStorageApp().saveAuthData(session.accessToken, user.id);
-      log("response entry 5");
-
-      // Store user profile in 'profiles' table
-      await client.from('users').insert({
-        'id': user.id,
-        'first_name': firstName,
-        'last_name': lastName,
-        'email': email,
-        'date_of_birth': dateOfBirth.toIso8601String(),
-        'avatar_url': avatar,
-      });
-      UserModel? userNew = await getUserData();
-      if (userNew != null) {
-        await LocalStorageApp().saveUser(userNew);
-      }
-
-      return BaseResponseModel(
-        success: true,
-        message: "Sign up successful",
-        data: userNew,
-      );
-    } catch (e) {
-      print('SignUp error: $e');
-      if (e is AuthApiException) {
-        log("SignUp error: ${e.message}");
-        return BaseResponseModel(success: false, message: e.message);
-      }
-      return BaseResponseModel(success: false, message: e.toString());
-    }
-  }
-
   // ---------- LOGIN ----------
-  Future<BaseResponseModel> login(String email, String password) async {
+  Future<BaseResponseModel<UserModel>> login(
+    String email,
+    String password,
+  ) async {
     try {
-      final response = await client.auth.signInWithPassword(
-        email: email,
-        password: password,
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/auth/login');
+      log("Logging in via URL: $url");
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
-      final user = response.user;
-      final session = response.session;
+      log("Login response status: ${response.statusCode}");
+      log("Login response body: ${response.body}");
 
-      if (user == null || session == null) {
-        return BaseResponseModel(
-          success: false,
-          message: "User or session is null",
-        );
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (body['status'] == 'success') {
+          final data = body['data'] as Map<String, dynamic>;
+          final token = data['token'] as String;
+          final userMap = data['user'] as Map<String, dynamic>;
+          final user = UserModel.fromJson(userMap);
+
+          // Save auth data and user profile locally
+          await LocalStorageApp().saveAuthData(token, user.id);
+          await LocalStorageApp().saveUser(user);
+
+          return BaseResponseModel(
+            success: true,
+            message: "Login successful",
+            data: user,
+          );
+        }
       }
 
-      await LocalStorageApp().saveAuthData(session.accessToken, user.id);
-      log("user => ${user.toJson()}");
-      UserModel? userNew = await getUserData();
-      if (userNew != null) {
-        await LocalStorageApp().saveUser(userNew);
-      }
-
-      return BaseResponseModel(
-        success: true,
-        message: "Login successful",
-        data: userNew,
-      );
+      final errorMsg = body['message'] ?? "Failed to login";
+      return BaseResponseModel(success: false, message: errorMsg.toString());
     } catch (e) {
-      print('Login error: $e');
-      if (e is AuthApiException) {
-        log("Login error: ${e.message}");
-        return BaseResponseModel(success: false, message: e.message);
-      }
+      log('Login exception: $e');
       return BaseResponseModel(success: false, message: e.toString());
     }
   }
 
-  // ---------- get User data ----------
+  // ---------- REGISTER ----------
+  Future<BaseResponseModel<UserModel>> register(
+    String username,
+    String email,
+    String password,
+  ) async {
+    try {
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/auth/register');
+      log("Registering via URL: $url");
 
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      log("Register response status: ${response.statusCode}");
+      log("Register response body: ${response.body}");
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (body['status'] == 'success') {
+          final data = body['data'] as Map<String, dynamic>;
+          final token = data['token'] as String;
+          final userMap = data['user'] as Map<String, dynamic>;
+          final user = UserModel.fromJson(userMap);
+
+          // Save auth data and user profile locally
+          await LocalStorageApp().saveAuthData(token, user.id);
+          await LocalStorageApp().saveUser(user);
+
+          return BaseResponseModel(
+            success: true,
+            message: "Registration successful",
+            data: user,
+          );
+        }
+      }
+
+      final errorMsg = body['message'] ?? "Failed to register";
+      return BaseResponseModel(success: false, message: errorMsg.toString());
+    } catch (e) {
+      log('Register exception: $e');
+      return BaseResponseModel(success: false, message: e.toString());
+    }
+  }
+
+  // ---------- GET USER PROFILE ----------
   Future<UserModel?> getUserData() async {
     try {
-      var userid = await LocalStorageApp().getUserId();
-      final response = await client.from('users').select().eq('id', userid);
-      log("user data => $response");
-      log("user data => ${response.single}");
-      return UserModel.fromJson(response.single);
+      final token = await LocalStorageApp().getAuthToken();
+      if (token.isEmpty) return null;
+
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/users/profile');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['status'] == 'success') {
+          final profileMap = body['data']['profile'] as Map<String, dynamic>;
+          return UserModel.fromJson(profileMap);
+        }
+      }
+      return null;
     } catch (e) {
-      print('Get user data error: $e');
+      log('Get user profile error: $e');
       return null;
     }
   }
 
-  // ---------- get All Users data ----------
-  Future<List<UserModel>?> getAllUsers() async {
+  // ---------- GET ALL USERS ----------
+  Future<List<UserModel>> getAllUsers() async {
     try {
-      var userId = await LocalStorageApp().getUserId();
-      log("my user id => $userId");
-      final response = await client
-          .from('users')
-          .select()
-          .neq('id', userId); // Exclude current user;
+      final token = await LocalStorageApp().getAuthToken();
+      final currentUserId = await LocalStorageApp().getUserId();
+      if (token.isEmpty) return [];
 
-      return (response as List).map((e) => UserModel.fromJson(e)).toList();
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/users');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['status'] == 'success') {
+          final usersList = body['data']['users'] as List<dynamic>;
+          final allUsers =
+              usersList.map((e) => UserModel.fromJson(e)).toList();
+
+          // Return list excluding current user
+          return allUsers.where((user) => user.id != currentUserId).toList();
+        }
+      }
+      return [];
     } catch (e) {
-      print('Get user data error: $e');
+      log('Get all users error: $e');
       return [];
     }
   }
 
   // ---------- LOGOUT ----------
   Future<void> logout() async {
-    await client.auth.signOut();
     await LocalStorageApp().clearAuthData();
   }
 }

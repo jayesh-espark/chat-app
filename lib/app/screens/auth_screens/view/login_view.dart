@@ -137,60 +137,6 @@ class LoginView extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 24),
-
-                    // Divider with text
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            color: colorScheme.onPrimary.withOpacity(0.3),
-                            thickness: 1,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            "OR",
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onPrimary.withOpacity(0.7),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Divider(
-                            color: colorScheme.onPrimary.withOpacity(0.3),
-                            thickness: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    TextButton(
-                      onPressed: () =>
-                          navigateToNamed(context, AppRoutes.signUpScreen),
-                      style: TextButton.styleFrom(
-                        foregroundColor: colorScheme.onPrimary,
-                      ),
-                      child: RichText(
-                        text: TextSpan(
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onPrimary.withOpacity(0.9),
-                          ),
-                          children: [
-                            const TextSpan(text: "Don't have an account? "),
-                            TextSpan(
-                              text: "Sign Up",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.onPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),

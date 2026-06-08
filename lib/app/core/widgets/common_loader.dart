@@ -38,7 +38,7 @@ class CommonLoaderScreen extends StatelessWidget {
             Text(
               "Loading...",
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: colorScheme.onBackground,
+                color: colorScheme.onSurface,
                 fontWeight: FontWeight.w500,
               ),
             ).animate().fadeIn(duration: 1200.ms),

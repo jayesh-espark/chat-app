@@ -1,8 +1,6 @@
 import 'dart:async';
-
 import 'package:chating_app/app/model/base_response.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/utills/app_images.dart';
 import '../../../network_calls/services/auth_services.dart';
@@ -218,14 +216,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       return;
     }
-    emit(LoadingState());
-    BaseResponseModel responseModel = await AuthServices().signUp(
-      firstName: event.firstName,
-      lastName: event.lastName,
-      email: event.email,
-      password: event.password,
-      dateOfBirth: event.dateOfBirth,
-      avatar: avatar,
+    BaseResponseModel responseModel = await AuthServices().register(
+      event.firstName,
+      event.email,
+      event.password,
     );
     if (responseModel.success) {
       emit(SignUpSuccessState(message: responseModel.message));

@@ -24,8 +24,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ) async {
     userModel = await LocalStorageApp().getUser();
     log("userModel => ${userModel?.toJson()}");
-    avatar = userModel?.avatarUrl ?? "";
-    userName = '${userModel?.firstName ?? ""} ${userModel?.lastName ?? ""}';
+    avatar = "";
+    userName = userModel?.username ?? "";
     emit(LoadUserProfileState());
   }
 

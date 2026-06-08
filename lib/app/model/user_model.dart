@@ -1,32 +1,25 @@
 class UserModel {
   final String id;
-  final String firstName;
-  final String lastName;
+  final String username;
   final String email;
-  final DateTime dateOfBirth;
-  final String avatarUrl;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   UserModel({
     required this.id,
-    required this.firstName,
-    required this.lastName,
+    required this.username,
     required this.email,
-    required this.dateOfBirth,
-    required this.avatarUrl,
-    required this.createdAt,
+    this.createdAt,
   });
 
   // Factory constructor to create a User from JSON
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as String,
-      firstName: json['first_name'] as String,
-      lastName: json['last_name'] as String,
-      email: json['email'] as String,
-      dateOfBirth: DateTime.parse(json['date_of_birth'] as String),
-      avatarUrl: json['avatar_url'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      id: (json['id'] ?? '').toString(),
+      username: json['username'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
+          : null,
     );
   }
 
@@ -34,12 +27,9 @@ class UserModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'first_name': firstName,
-      'last_name': lastName,
+      'username': username,
       'email': email,
-      'date_of_birth': dateOfBirth.toIso8601String(),
-      'avatar_url': avatarUrl,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 }

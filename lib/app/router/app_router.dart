@@ -7,7 +7,6 @@ import 'package:chating_app/app/screens/home_screen/view/home_view/profile_scree
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../screens/auth_screens/view/login_view.dart';
-import '../screens/auth_screens/view/signup_view.dart';
 import '../screens/home_screen/view/home_view/chat_room/chat_room_bloc/chat_room_bloc.dart';
 import '../screens/home_screen/view/home_view/chat_room/chat_room_view/chat_room_view.dart';
 import '../screens/home_screen/view/home_view/new_chat/new_chat_bloc/new_chat_bloc.dart';
@@ -62,13 +61,6 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) =>
               BlocProvider(create: (context) => AuthBloc(), child: LoginView()),
-        );
-      case AppRoutes.signUpScreen:
-        return MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (context) => AuthBloc(),
-            child: SignUpView(),
-          ),
         );
       default:
         // If route not found, show a 404 page

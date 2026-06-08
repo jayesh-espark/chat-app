@@ -3,25 +3,24 @@ part of 'chat_room_bloc.dart';
 sealed class ChatRoomEvent {}
 
 class LoadChatMessagesEvent extends ChatRoomEvent {
-  final String chatId;
-  final String receiverId;
-  final String name;
-  final String avatar;
+  final int roomId;
+  final String roomName;
   LoadChatMessagesEvent({
-    required this.chatId,
-    required this.receiverId,
-    required this.name,
-    required this.avatar,
+    required this.roomId,
+    required this.roomName,
   });
 }
 
 class SendMessageEvent extends ChatRoomEvent {
-  final String chatId;
-  final String receiverId;
+  final int roomId;
   final String message;
   SendMessageEvent({
-    required this.chatId,
-    required this.receiverId,
+    required this.roomId,
     required this.message,
   });
+}
+
+class MessageReceivedEvent extends ChatRoomEvent {
+  final ChatMessageModel message;
+  MessageReceivedEvent(this.message);
 }

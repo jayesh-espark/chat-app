@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:chating_app/app/app_services/biomatric_services.dart';
 import 'package:chating_app/app/core/storage/local_storage.dart';
 import 'package:flutter/material.dart';

@@ -64,7 +64,7 @@ class _ProfileViewState extends State<ProfileView> {
     final bloc = context.read<ProfileBloc>();
 
     return Scaffold(
-      backgroundColor: colorScheme.background,
+      backgroundColor: colorScheme.surface,
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {
           if (state is LogoutUserState) {
@@ -79,12 +79,9 @@ class _ProfileViewState extends State<ProfileView> {
         builder: (context, state) {
           // Get user data from bloc
           final userModel = bloc.userModel;
-          final age = _calculateAge(userModel?.dateOfBirth);
-          final birthday = _formatBirthday(userModel?.dateOfBirth);
           final joinDate = _formatDate(userModel?.createdAt);
           final email = userModel?.email ?? '';
-          final firstName = userModel?.firstName ?? '';
-          final lastName = userModel?.lastName ?? '';
+          final username = userModel?.username ?? '';
 
           return CustomScrollView(
             slivers: [
@@ -160,28 +157,15 @@ class _ProfileViewState extends State<ProfileView> {
                                   ),
                                 ],
                               ),
-                              child: bloc.avatar.isEmpty
-                                  ? CircleAvatar(
-                                      radius: 60,
-                                      backgroundColor: colorScheme.surface,
-                                      child: Icon(
-                                        Icons.person,
-                                        color: colorScheme.onSurface,
-                                        size: 70,
-                                      ),
-                                    )
-                                  : ClipOval(
-                                      child: CircleAvatar(
-                                        radius: 60,
-                                        backgroundColor: colorScheme.surface,
-                                        child: Image.asset(
-                                          bloc.avatar,
-                                          height: 120,
-                                          width: 120,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
+                              child: CircleAvatar(
+                                radius: 60,
+                                backgroundColor: colorScheme.surface,
+                                child: Icon(
+                                  Icons.person,
+                                  color: colorScheme.onSurface,
+                                  size: 70,
+                                ),
+                              ),
                             ).animate().scale(
                               delay: 200.ms,
                               duration: 600.ms,
@@ -202,7 +186,7 @@ class _ProfileViewState extends State<ProfileView> {
                     const SizedBox(height: 16),
                     // Name with animation
                     Text(
-                          '${firstName} ${lastName}',
+                          username,
                           style: theme.textTheme.headlineMedium?.copyWith(
                             color: colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
@@ -236,43 +220,6 @@ class _ProfileViewState extends State<ProfileView> {
 
                     const SizedBox(height: 24),
 
-                    // Info Cards
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: [
-                          // Age Card
-                          if (age.isNotEmpty)
-                            Expanded(
-                              child: _buildInfoCard(
-                                context,
-                                icon: Icons.cake_outlined,
-                                label: 'Age',
-                                value: age,
-                                color: colorScheme.primary,
-                                delay: 500,
-                              ),
-                            ),
-                          if (age.isNotEmpty && birthday.isNotEmpty)
-                            const SizedBox(width: 12),
-                          // Birthday Card
-                          if (birthday.isNotEmpty)
-                            Expanded(
-                              child: _buildInfoCard(
-                                context,
-                                icon: Icons.celebration_outlined,
-                                label: 'Birthday',
-                                value: birthday,
-                                color: colorScheme.secondary,
-                                delay: 600,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
                     // Member Since Card
                     if (joinDate.isNotEmpty)
                       Padding(
@@ -282,7 +229,7 @@ class _ProfileViewState extends State<ProfileView> {
                           icon: Icons.person_add_outlined,
                           label: 'Member Since',
                           value: joinDate,
-                          delay: 700,
+                          delay: 500,
                         ),
                       ),
 

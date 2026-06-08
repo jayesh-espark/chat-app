@@ -6,5 +6,4 @@ class AppRoutes {
   static const String chatBubbleScreen = '/chatBubbleScreen';
   static const String splashScreen = '/splashScreen';
   static const String loginScreen = '/loginScreen';
-  static const String signUpScreen = '/signUpScreen';
 }

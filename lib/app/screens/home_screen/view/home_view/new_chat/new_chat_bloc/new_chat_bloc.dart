@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'package:chating_app/app/network_calls/services/auth_services.dart';
 import 'package:chating_app/app/network_calls/services/chat_services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../../../core/storage/local_storage.dart';
 import '../../../../../../model/user_model.dart';
 
 part 'new_chat_event.dart';
@@ -13,7 +12,7 @@ class NewChatBloc extends Bloc<NewChatEvent, NewChatState> {
   List<UserModel>? userList = [];
   NewChatBloc() : super(NewChatInitial()) {
     on<InitializeNewChatEvent>(_handleInitializeNewChat);
-    on<OpenChatEvent>(_handleOpenChatEventNewChat);
+    on<CreateRoomEvent>(_handleCreateRoom);
   }
 
   Future<void> _handleInitializeNewChat(
@@ -31,30 +30,25 @@ class NewChatBloc extends Bloc<NewChatEvent, NewChatState> {
     emit(GotUsersSuccessState());
   }
 
-  Future<void> _handleOpenChatEventNewChat(
-    OpenChatEvent event,
+  Future<void> _handleCreateRoom(
+    CreateRoomEvent event,
     Emitter<NewChatState> emit,
   ) async {
     try {
-      var userId = await LocalStorageApp().getUserId();
       emit(NoAction(isLoading: true));
-      log("Creating chat room with user ID: ${event.userId}");
-      var chatRoomId = await ChatServices().createChatRoom(
-        userId,
-        event.userId,
-      );
-      log("Chat Room ID: $chatRoomId");
+      log("Creating chat room with name: ${event.name}");
+      final room = await ChatServices().createChatRoom(event.name);
       emit(NoAction(isLoading: false));
-      emit(
-        OpenChatState(
-          chatId: chatRoomId,
-          userId: event.userId,
-          avatar: event.avatar,
-          userName: event.userName,
-        ),
-      );
+      if (room != null) {
+        emit(
+          OpenChatState(
+            roomId: room.id,
+            roomName: room.name,
+          ),
+        );
+      }
     } catch (e) {
-      log("Error in creating chat room: $e");
+      log("Error in creating room: $e");
       emit(NoAction(isLoading: false));
     }
   }

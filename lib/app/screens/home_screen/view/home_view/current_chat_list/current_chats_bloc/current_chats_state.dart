@@ -9,15 +9,11 @@ final class GetAllChatsState extends CurrentChatsState {}
 final class LoadingCurrentChatsState extends CurrentChatsState {}
 
 class OpenChatState extends CurrentChatsState {
-  final String chatId;
-  final String userId;
-  final String avatar;
-  final String userName;
+  final int roomId;
+  final String roomName;
   OpenChatState({
-    required this.chatId,
-    required this.userId,
-    required this.avatar,
-    required this.userName,
+    required this.roomId,
+    required this.roomName,
   });
 }
 

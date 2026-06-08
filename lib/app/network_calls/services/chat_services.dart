@@ -1,7 +1,8 @@
+import 'dart:convert';
 import 'dart:developer';
+import 'package:http/http.dart' as http;
 
-import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../../core/config/app_config.dart';
 import '../../core/storage/local_storage.dart';
 import '../../model/chat_model.dart';
 import '../../model/chat_room_model.dart';
@@ -10,134 +11,99 @@ class ChatServices {
   ChatServices._();
   static final ChatServices _instance = ChatServices._();
   factory ChatServices() => _instance;
-  final _client = Supabase.instance.client;
 
-  Future<String> createChatRoom(String user1Id, String user2Id) async {
-    // Step 1: Check if chat already exists
-    final existingChat = await _client
-        .from('chats')
-        .select()
-        .or(
-          'and(user1_id.eq.$user1Id,user2_id.eq.$user2Id),and(user1_id.eq.$user2Id,user2_id.eq.$user1Id)',
-        )
-        // .or('user1_id.eq.$user1Id,user2_id.eq.$user2Id')
-        .limit(1)
-        .maybeSingle();
+  // ---------- CREATE ROOM ----------
+  Future<ChatRoomModel?> createChatRoom(String name) async {
+    try {
+      final token = await LocalStorageApp().getAuthToken();
+      if (token.isEmpty) return null;
 
-    if (existingChat != null) {
-      // Chat exists
-      return existingChat['id'];
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/chat/rooms');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'name': name}),
+      );
+
+      log("Create room response: ${response.body}");
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['status'] == 'success') {
+          return ChatRoomModel.fromJson(body['data']['room']);
+        }
+      }
+      return null;
+    } catch (e) {
+      log("Error creating room: $e");
+      return null;
     }
-
-    // Step 2: Create a new chat
-    final newChat = await _client
-        .from('chats')
-        .insert({
-          'user1_id': user1Id,
-          'user2_id': user2Id,
-          'last_message': '',
-          'last_message_at': DateTime.now().toIso8601String(),
-        })
-        .select()
-        .single();
-
-    return newChat['id']; // Return the chat id
   }
 
-  Future<void> sendMessage(
-    String chatId,
-    String senderId,
-    String message,
-  ) async {
-    // Step 1: Insert message into messages table
-    await _client.from('chat_rooms').insert({
-      'chat_id': chatId,
-      'sender_id': senderId,
-      'message': message,
-      'created_at': DateTime.now().toIso8601String(),
-    });
-
-    // Step 2: Update last message in chats table
-    await _client
-        .from('chats')
-        .update({
-          'last_message': message,
-          'last_message_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', chatId);
-  }
-
+  // ---------- GET USER CHATS / ALL ROOMS ----------
   Future<List<ChatRoomModel>> getUserChats(String userId) async {
     try {
-      final response = await _client
-          .from('chats')
-          .select('''
-      id,
-      user1_id,
-      user2_id,
-      last_message,
-      last_message_at,
-      user1:user1_id(first_name,last_name,avatar_url),
-      user2:user2_id(first_name,last_name,avatar_url)
-    ''')
-          .or('user1_id.eq.$userId,user2_id.eq.$userId')
-          .order('last_message_at', ascending: false);
+      final token = await LocalStorageApp().getAuthToken();
+      if (token.isEmpty) return [];
 
-      // Now map to show the "other user" clearly
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/chat/rooms');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-      var data = response.map((e) {
-        final isUser1 = e['user1_id'] != userId;
-        final modifiedData = Map<String, dynamic>.from(e);
-        modifiedData['user'] = isUser1 ? e['user1'] : e['user2'];
-        modifiedData['user_id'] = isUser1 ? e['user1_id'] : e['user2_id'];
-        return ChatRoomModel.fromJson(modifiedData);
-      }).toList();
-      return data;
+      log("Get user rooms response: ${response.body}");
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['status'] == 'success') {
+          final list = body['data']['rooms'] as List<dynamic>;
+          return list.map((e) => ChatRoomModel.fromJson(e)).toList();
+        }
+      }
+      return [];
     } catch (e) {
-      log("Error fetching user chats: $e");
+      log("Error fetching rooms: $e");
       return [];
     }
   }
 
-  Future<Stream<List<ChatMessageModel>>> getChatMessagesStream(
-    String chatRoomId,
-  ) async {
-    final userId = await LocalStorageApp().getUserId();
-    return _client
-        .from('chat_rooms')
-        .stream(primaryKey: ['id'])
-        .eq('chat_id', chatRoomId)
-        .order('created_at')
-        .map(
-          (maps) => maps.map((row) {
-            return ChatMessageModel(
-              text: row['message'] ?? "",
-              isMe: row['sender_id'] == userId,
-              timestamp: DateTime.parse(row['created_at'] as String),
-            );
-          }).toList(),
-        );
-  }
-
+  // ---------- GET ROOM MESSAGES HISTORY ----------
   Future<List<ChatMessageModel>> getExistingChats(
-    String chatRoomId,
-    String userAId,
-    String userBId,
+    String roomId,
+    String currentUserId,
   ) async {
-    final userId = await LocalStorageApp().getUserId();
+    try {
+      final token = await LocalStorageApp().getAuthToken();
+      if (token.isEmpty) return [];
 
-    final List<dynamic> list = await _client
-        .from('chat_rooms')
-        .select()
-        .eq('chat_id', chatRoomId)
-        .order('created_at');
-    log("list => $list");
-    return list.map((row) {
-      return ChatMessageModel(
-        text: row['message'] as String? ?? "",
-        isMe: row['sender_id'] == userId,
-        timestamp: DateTime.parse(row['created_at'] as String),
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/chat/rooms/$roomId/messages');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
-    }).toList();
+
+      log("Get room messages response: ${response.body}");
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['status'] == 'success') {
+          final list = body['data']['messages'] as List<dynamic>;
+          return list
+              .map((e) => ChatMessageModel.fromJson(e, currentUserId))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      log("Error loading room messages: $e");
+      return [];
+    }
   }
 }

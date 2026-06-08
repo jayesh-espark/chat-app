@@ -16,10 +16,9 @@ class CalendarData {
     try {
       return dailyFinancials.firstWhere(
         (d) =>
-            d.date != null &&
-            d.date!.year == date.year &&
-            d.date!.month == date.month &&
-            d.date!.day == date.day,
+            d.date.year == date.year &&
+            d.date.month == date.month &&
+            d.date.day == date.day,
       );
     } catch (e) {
       return null;

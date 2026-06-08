@@ -4,13 +4,7 @@ sealed class NewChatEvent {}
 
 final class InitializeNewChatEvent extends NewChatEvent {}
 
-final class OpenChatEvent extends NewChatEvent {
-  final String userId;
-  final String avatar;
-  final String userName;
-  OpenChatEvent({
-    required this.userId,
-    required this.avatar,
-    required this.userName,
-  });
+final class CreateRoomEvent extends NewChatEvent {
+  final String name;
+  CreateRoomEvent(this.name);
 }

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -18,57 +17,49 @@ class _ChatRoomViewState extends State<ChatRoomView> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  var _userId = '';
-  var _chatId = '';
-
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final args = ModalRoute.of(context)?.settings.arguments as Map?;
-      log("args : $args");
-      var userId = args?['userId'] ?? '';
-      log("userId : $userId");
-      var chatId = args?['chatId'] ?? '';
-      log("chatId : $chatId");
-      var name = args?['user_name'] ?? '';
-      log("name : $name");
-      var avatar = args?['avatar'] ?? '';
-      log("avatar : $avatar");
-      _userId = userId;
-      _chatId = chatId;
+      log("ChatRoomView settings arguments: $args");
+
+      final int roomId = args?['roomId'] is int
+          ? args!['roomId'] as int
+          : int.tryParse((args?['roomId'] ?? '1').toString()) ?? 1;
+      final String roomName = args?['roomName'] ?? 'General Room';
+
       context.read<ChatRoomBloc>().add(
-        LoadChatMessagesEvent(
-          chatId: chatId,
-          receiverId: userId,
-          name: name,
-          avatar: avatar,
-        ),
-      );
+            LoadChatMessagesEvent(
+              roomId: roomId,
+              roomName: roomName,
+            ),
+          );
     });
   }
 
   void _sendMessage() {
     if (_controller.text.trim().isEmpty) return;
 
-    var bloc = context.read<ChatRoomBloc>();
+    final bloc = context.read<ChatRoomBloc>();
     bloc.add(
       SendMessageEvent(
-        chatId: _chatId,
-        receiverId: _userId,
+        roomId: bloc.roomId,
         message: _controller.text.trim(),
       ),
     );
     _controller.clear();
+  }
 
-    Future.delayed(const Duration(milliseconds: 100), () {
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
-    });
+    }
   }
 
   @override
@@ -82,70 +73,75 @@ class _ChatRoomViewState extends State<ChatRoomView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
     return BlocConsumer<ChatRoomBloc, ChatRoomState>(
       listener: (context, state) {
-        // TODO: implement listener
+        if (state is ChatMessagesLoadedState || state is MessageSentState) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToBottom();
+          });
+        }
       },
       builder: (context, state) {
-        var bloc = context.read<ChatRoomBloc>();
+        final bloc = context.read<ChatRoomBloc>();
+        final messages = bloc.chatMessages;
+
         return Scaffold(
           appBar: AppBar(
             title: Row(
               children: [
-                bloc.avatar.isEmpty
-                    ? CircleAvatar(
-                        backgroundColor: colorScheme.secondary,
-                        child: Icon(
-                          Icons.person,
-                          color: colorScheme.onSecondary,
-                        ),
-                      ).animate().scale(
-                        delay: 200.ms,
-                        duration: 400.ms,
-                        curve: Curves.elasticOut,
-                      )
-                    : ClipOval(
-                        child:
-                            CircleAvatar(
-                              backgroundColor: colorScheme.secondary,
-                              child: Image.asset(bloc.avatar),
-                            ).animate().scale(
-                              delay: 200.ms,
-                              duration: 400.ms,
-                              curve: Curves.elasticOut,
-                            ),
-                      ),
+                CircleAvatar(
+                  backgroundColor: colorScheme.secondary,
+                  child: Icon(
+                    Icons.forum_outlined,
+                    color: colorScheme.onSecondary,
+                  ),
+                ).animate().scale(
+                      delay: 200.ms,
+                      duration: 400.ms,
+                      curve: Curves.elasticOut,
+                    ),
                 const SizedBox(width: 12),
-                Text(
-                  bloc.userName.isEmpty ? 'John Doe' : bloc.userName,
-                  style: theme.appBarTheme.titleTextStyle,
-                ).animate().fadeIn(delay: 300.ms).slideX(begin: -0.2, end: 0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        bloc.roomName.isEmpty ? 'General Room' : bloc.roomName,
+                        style: theme.appBarTheme.titleTextStyle?.copyWith(
+                          fontSize: 18,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ).animate().fadeIn(delay: 300.ms).slideX(begin: -0.2, end: 0),
+                      Text(
+                        'Room ID: ${bloc.roomId}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onPrimary.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
           body: Column(
             children: [
               Expanded(
-                child: StreamBuilder<List<ChatMessageModel>>(
-                  stream: bloc.chatMessagesStream,
-                  initialData: bloc.chatMessages,
-                  builder: (context, snapshot) {
-                    final messages = snapshot.data ?? [];
-                    return ListView.builder(
-                      reverse: true,
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: messages.length,
-                      itemBuilder: (context, index) {
-                        log(" messages.length : ${messages.length}");
-                        return ChatBubble(
-                          message: messages[index],
-                          index: index,
-                        );
-                      },
-                    );
-                  },
-                ),
+                child: state is ChatRoomLoadingState && messages.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          return ChatBubble(
+                            message: messages[index],
+                            index: index,
+                          );
+                        },
+                      ),
               ),
               _buildMessageInput(theme, colorScheme),
             ],
@@ -172,7 +168,6 @@ class _ChatRoomViewState extends State<ChatRoomView> {
         child: Row(
           children: [
             const SizedBox(width: 8),
-
             Expanded(
               child: TextField(
                 controller: _controller,
@@ -184,16 +179,12 @@ class _ChatRoomViewState extends State<ChatRoomView> {
                   ),
                 ),
                 onSubmitted: (_) => _sendMessage(),
-              ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.3, end: 0),
+              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.3, end: 0),
             ),
-
             IconButton(
-                  icon: Icon(Icons.send, color: colorScheme.secondary),
-                  onPressed: _sendMessage,
-                )
-                .animate()
-                .fadeIn(delay: 1100.ms)
-                .scale(delay: 1100.ms, curve: Curves.elasticOut),
+              icon: Icon(Icons.send, color: colorScheme.secondary),
+              onPressed: _sendMessage,
+            ).animate().fadeIn(delay: 300.ms).scale(curve: Curves.elasticOut),
           ],
         ),
       ),
@@ -221,72 +212,68 @@ class ChatBubble extends StatelessWidget {
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         child: Column(
-          crossAxisAlignment: isMe
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
+            if (!isMe) ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 4),
+                child: Text(
+                  message.username.isEmpty ? 'User' : message.username,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
             Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              decoration: BoxDecoration(
+                color: isMe
+                    ? colorScheme.primary
+                    : (theme.brightness == Brightness.dark
+                        ? colorScheme.surface
+                        : Colors.grey[200]),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: Radius.circular(isMe ? 20 : 4),
+                  bottomRight: Radius.circular(isMe ? 4 : 20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                  decoration: BoxDecoration(
-                    color: isMe
-                        ? colorScheme.primary
-                        : (theme.brightness == Brightness.dark
-                              ? colorScheme.surface
-                              : Colors.grey[200]),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(20),
-                      topRight: const Radius.circular(20),
-                      bottomLeft: Radius.circular(isMe ? 20 : 4),
-                      bottomRight: Radius.circular(isMe ? 4 : 20),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    message.text,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: isMe
-                          ? colorScheme.onPrimary
-                          : (theme.brightness == Brightness.dark
-                                ? colorScheme.onSurface
-                                : Colors.black87),
-                    ),
-                  ),
-                )
-                .animate()
-                .fadeIn(
-                  delay: Duration(milliseconds: 100 * index),
-                  duration: 400.ms,
-                )
-                .slideX(
-                  begin: isMe ? 0.3 : -0.3,
-                  end: 0,
-                  delay: Duration(milliseconds: 100 * index),
-                  duration: 400.ms,
-                  curve: Curves.easeOutCubic,
-                )
-                .scale(
-                  begin: const Offset(0.8, 0.8),
+                ],
+              ),
+              child: Text(
+                message.text,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: isMe
+                      ? colorScheme.onPrimary
+                      : (theme.brightness == Brightness.dark
+                          ? colorScheme.onSurface
+                          : Colors.black87),
+                ),
+              ),
+            ).animate().fadeIn(duration: 300.ms).scale(
+                  begin: const Offset(0.95, 0.95),
                   end: const Offset(1, 1),
-                  delay: Duration(milliseconds: 100 * index),
-                  duration: 400.ms,
-                  curve: Curves.easeOutCubic,
+                  curve: Curves.easeOut,
                 ),
             const SizedBox(height: 4),
-            Text(
-              _formatTime(message.timestamp),
-              style: theme.textTheme.bodySmall,
-            ).animate().fadeIn(
-              delay: Duration(milliseconds: 100 * index + 200),
-              duration: 300.ms,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                _formatTime(message.timestamp),
+                style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+              ),
             ),
           ],
         ),

@@ -58,11 +58,9 @@ class AppTheme {
     colorScheme: ColorScheme.light(
       primary: _lightPrimary,
       secondary: _lightAccent,
-      background: _lightBackground,
       surface: _lightSurface,
       onPrimary: _lightOnPrimary,
       onSecondary: _lightOnPrimary,
-      onBackground: _lightOnSurface,
       onSurface: _lightOnSurface,
     ),
     textTheme: TextTheme(
@@ -134,11 +132,9 @@ class AppTheme {
     colorScheme: ColorScheme.dark(
       primary: _darkPrimary,
       secondary: _darkAccent,
-      background: _darkBackground,
       surface: _darkSurface,
       onPrimary: _darkOnSurface,
       onSecondary: _darkOnSurface,
-      onBackground: _darkOnSurface,
       onSurface: _darkOnSurface,
     ),
     textTheme: TextTheme(

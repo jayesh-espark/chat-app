@@ -48,7 +48,7 @@ class _HomeViewState extends State<HomeView> {
             return;
           },
           child: Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.background,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             body: context.read<HomeBloc>().pages[currentIndex],
             bottomNavigationBar: _buildBottomNavBar(
               currentIndex: currentIndex,

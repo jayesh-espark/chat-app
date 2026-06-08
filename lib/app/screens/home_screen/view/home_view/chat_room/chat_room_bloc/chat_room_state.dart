@@ -4,9 +4,7 @@ sealed class ChatRoomState {}
 
 final class ChatRoomInitial extends ChatRoomState {}
 
-class LoadingChatMessagesState extends ChatRoomState {}
-
-class SendMessageSuccessState extends ChatRoomState {}
+class ChatRoomLoadingState extends ChatRoomState {}
 
 class ChatMessagesLoadedState extends ChatRoomState {}
 

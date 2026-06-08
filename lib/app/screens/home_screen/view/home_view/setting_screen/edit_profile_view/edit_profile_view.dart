@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:intl/intl.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -11,41 +10,15 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _bioController = TextEditingController();
-  DateTime? _selectedDate;
   bool _isSaving = false;
 
   @override
   void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
-    _bioController.dispose();
     super.dispose();
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        final colorScheme = Theme.of(context).colorScheme;
-        return Theme(
-          data: Theme.of(context).copyWith(colorScheme: colorScheme),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
   }
 
   void _saveProfile() {
@@ -54,8 +27,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _isSaving = true;
       });
 
-      // Simulate save operation
-      Future.delayed(const Duration(seconds: 2), () {
+      // Simulate save operation (simulated update profile)
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (!mounted) return;
         setState(() {
           _isSaving = false;
         });
@@ -79,7 +53,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.background,
+      backgroundColor: colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           // Animated App Bar
@@ -100,7 +74,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               background: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -155,43 +128,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                           ),
                         ).animate().scale(
-                          delay: 100.ms,
-                          duration: 600.ms,
-                          curve: Curves.elasticOut,
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: colorScheme.background,
-                                width: 3,
-                              ),
+                              delay: 100.ms,
+                              duration: 600.ms,
+                              curve: Curves.elasticOut,
                             ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              size: 20,
-                              color: Colors.white,
-                            ),
-                          ).animate().scale(delay: 400.ms, duration: 400.ms),
-                        ),
                       ],
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -40,
-                    left: -40,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.1),
-                      ),
                     ),
                   ),
                 ],
@@ -207,36 +148,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Avatar Section
                     const SizedBox(height: 32),
-                    // First Name Field
+                    // Username Field
                     _buildTextField(
-                      controller: _firstNameController,
-                      label: 'First Name',
+                      controller: _usernameController,
+                      label: 'Username',
                       icon: Icons.person_outline,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your first name';
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your username';
                         }
                         return null;
                       },
                       delay: 200,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Last Name Field
-                    _buildTextField(
-                      controller: _lastNameController,
-                      label: 'Last Name',
-                      icon: Icons.person_outline,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your last name';
-                        }
-                        return null;
-                      },
-                      delay: 300,
                     ),
 
                     const SizedBox(height: 16),
@@ -256,112 +180,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         }
                         return null;
                       },
-                      delay: 400,
+                      delay: 300,
                     ),
 
-                    const SizedBox(height: 16),
-
-                    // Date of Birth Field
-                    InkWell(
-                          onTap: () => _selectDate(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: colorScheme.outline.withOpacity(0.2),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.cake_outlined,
-                                  color: colorScheme.primary,
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Date of Birth',
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: colorScheme.onSurface
-                                                  .withOpacity(0.6),
-                                            ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _selectedDate != null
-                                            ? DateFormat(
-                                                'MMM dd, yyyy',
-                                              ).format(_selectedDate!)
-                                            : 'Select your birthday',
-                                        style: theme.textTheme.bodyLarge
-                                            ?.copyWith(
-                                              color: _selectedDate != null
-                                                  ? colorScheme.onSurface
-                                                  : colorScheme.onSurface
-                                                        .withOpacity(0.4),
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.calendar_today,
-                                  color: colorScheme.onSurface.withOpacity(0.4),
-                                  size: 20,
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(delay: 500.ms, duration: 500.ms)
-                        .slideX(begin: -0.2, end: 0, curve: Curves.easeOut),
-
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 32),
 
                     // Save Button
                     SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: _isSaving ? null : _saveProfile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: colorScheme.primary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 2,
-                            ),
-                            child: _isSaving
-                                ? const SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
-                                    ),
-                                  )
-                                : const Text(
-                                    'Save Changes',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveProfile,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        )
+                          elevation: 2,
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Text(
+                                'Save Changes',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    )
                         .animate()
-                        .fadeIn(delay: 700.ms, duration: 500.ms)
+                        .fadeIn(delay: 500.ms, duration: 500.ms)
                         .scale(
                           begin: const Offset(0.9, 0.9),
                           end: const Offset(1, 1),
@@ -390,38 +249,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     return TextFormField(
-          controller: controller,
-          textAlign: TextAlign.start,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          validator: validator,
-          decoration: InputDecoration(
-            labelText: label,
-            prefixIcon: Icon(icon, color: colorScheme.primary),
-            filled: true,
-            fillColor: colorScheme.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: colorScheme.outline.withOpacity(0.2),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: colorScheme.outline.withOpacity(0.2),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colorScheme.primary, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colorScheme.error),
-            ),
+      controller: controller,
+      textAlign: TextAlign.start,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: colorScheme.primary),
+        filled: true,
+        fillColor: colorScheme.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.outline.withOpacity(0.2),
           ),
-        )
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.outline.withOpacity(0.2),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+      ),
+    )
         .animate()
         .fadeIn(delay: delay.ms, duration: 500.ms)
         .slideX(begin: -0.2, end: 0, curve: Curves.easeOut);

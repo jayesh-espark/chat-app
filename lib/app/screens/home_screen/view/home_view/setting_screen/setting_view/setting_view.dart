@@ -37,7 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.background,
+      backgroundColor: colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           // Animated App Bar
@@ -503,7 +503,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Switch(
                 value: value,
                 onChanged: onChanged,
-                activeColor: colorScheme.primary,
+                activeThumbColor: colorScheme.primary,
               ),
             ],
           ),

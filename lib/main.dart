@@ -3,9 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app/core/themes/app_theme.dart';
-import 'app/core/utills/common_functions.dart';
 import 'app/core/widgets/common_loader.dart';
 import 'app/router/app_router.dart';
 import 'app/router/app_routes.dart';
@@ -14,10 +12,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
-  var supaBaseCred = await getSupBaseCred();
-  var SUPABASE_URL = supaBaseCred['url'] ?? " ";
-  var SUPABASE_ANON_KEY = supaBaseCred['anonKey'] ?? " ";
-  await Supabase.initialize(url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY);
 
   runApp(const MyApp());
 }

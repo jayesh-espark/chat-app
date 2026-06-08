@@ -5,14 +5,10 @@ sealed class CurrentChatsEvent {}
 final class GetAllChatsEvent extends CurrentChatsEvent {}
 
 final class OpenChatEvent extends CurrentChatsEvent {
-  final String userId;
-  final String chatId;
-  final String avatar;
-  final String userName;
+  final int roomId;
+  final String roomName;
   OpenChatEvent({
-    required this.userId,
-    required this.chatId,
-    required this.userName,
-    required this.avatar,
+    required this.roomId,
+    required this.roomName,
   });
 }
