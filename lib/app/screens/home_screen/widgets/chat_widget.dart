@@ -18,7 +18,9 @@ class ChatTile extends StatelessWidget {
       return const SizedBox();
     }
 
+    // User Model Presentation (e.g. in Available Users directory list)
     if (userModel != null) {
+      final hasUserImage = userModel?.profileImageUrl.isNotEmpty ?? false;
       return GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
@@ -40,24 +42,34 @@ class ChatTile extends StatelessWidget {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [colorScheme.primary, colorScheme.secondary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: hasUserImage
+                      ? null
+                      : LinearGradient(
+                          colors: [colorScheme.primary, colorScheme.secondary],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                   shape: BoxShape.circle,
+                  image: hasUserImage
+                      ? DecorationImage(
+                          image: NetworkImage(userModel!.profileImageUrl),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
                 ),
-                child: Center(
-                  child: Text(
-                    (userModel?.username.isNotEmpty ?? false)
-                        ? userModel!.username[0].toUpperCase()
-                        : 'U',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: colorScheme.onPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                child: !hasUserImage
+                    ? Center(
+                        child: Text(
+                          (userModel?.username.isNotEmpty ?? false)
+                              ? userModel!.username[0].toUpperCase()
+                              : 'U',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -65,19 +77,31 @@ class ChatTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      userModel?.username ?? '',
+                      userModel?.name.isNotEmpty ?? false
+                          ? userModel!.name
+                          : userModel?.username ?? '',
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      userModel?.email ?? '',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurface.withOpacity(0.6),
+                    if (userModel?.name.isNotEmpty ?? false) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '@${userModel?.username}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface.withOpacity(0.6),
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        userModel?.email ?? '',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -91,7 +115,11 @@ class ChatTile extends StatelessWidget {
       );
     }
 
-    // Room model presentation
+    // Chat Room Model Presentation (e.g. in Chat List)
+    final isGroup = chat?.isGroup ?? true;
+    final roomName = chat?.name ?? (isGroup ? 'General Room' : 'User');
+    final hasRoomImage = chat?.profileImageUrl.isNotEmpty ?? false;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -113,14 +141,22 @@ class ChatTile extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.1),
+                color: hasRoomImage ? Colors.transparent : colorScheme.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
+                image: hasRoomImage
+                    ? DecorationImage(
+                        image: NetworkImage(chat!.profileImageUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Icon(
-                Icons.forum_outlined,
-                color: colorScheme.primary,
-                size: 26,
-              ),
+              child: !hasRoomImage
+                  ? Icon(
+                      isGroup ? Icons.groups : Icons.person,
+                      color: colorScheme.primary,
+                      size: 26,
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -128,7 +164,7 @@ class ChatTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    chat?.name ?? 'General Room',
+                    roomName,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
@@ -136,7 +172,7 @@ class ChatTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Room ID: ${chat?.id ?? 0}',
+                    isGroup ? 'Group Room ID: ${chat?.id ?? 0}' : 'Direct Message',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurface.withOpacity(0.6),
                     ),

@@ -1,5 +1,7 @@
 import 'package:chating_app/app/app_services/biomatric_services.dart';
 import 'package:chating_app/app/core/storage/local_storage.dart';
+import 'package:chating_app/app/core/utills/navigation_utils.dart';
+import 'package:chating_app/app/screens/home_screen/view/home_view/setting_screen/edit_profile_view/edit_profile_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -137,7 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: 'Edit Profile',
                         subtitle: 'Update your personal information',
                         onTap: () {
-                          // Navigate to edit profile
+                          navigateTo(context, const EditProfileScreen());
                         },
                         delay: 200,
                       ),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:http/http.dart' as http;
 
+import '../../app_services/fcm_services.dart';
 import '../../core/config/app_config.dart';
 import '../../core/storage/local_storage.dart';
 import '../../model/base_response.dart';
@@ -174,8 +175,68 @@ class AuthServices {
     }
   }
 
+  // ---------- UPDATE PROFILE ----------
+  Future<BaseResponseModel<UserModel>> updateProfile(
+    String name,
+    String profileImageUrl,
+  ) async {
+    try {
+      final token = await LocalStorageApp().getAuthToken();
+      if (token.isEmpty) {
+        return BaseResponseModel(success: false, message: "Authentication token is missing");
+      }
+
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/users/profile');
+      log("Updating profile via URL: $url");
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'name': name,
+          'profile_image_url': profileImageUrl,
+        }),
+      );
+
+      log("Update profile response status: ${response.statusCode}");
+      log("Update profile response body: ${response.body}");
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (body['status'] == 'success') {
+          final profileMap = body['data']['profile'] as Map<String, dynamic>;
+          final updatedUser = UserModel.fromJson(profileMap);
+
+          // Update local storage
+          await LocalStorageApp().saveUser(updatedUser);
+
+          return BaseResponseModel(
+            success: true,
+            message: "Profile updated successfully",
+            data: updatedUser,
+          );
+        }
+      }
+
+      final errorMsg = body['message'] ?? "Failed to update profile";
+      return BaseResponseModel(success: false, message: errorMsg.toString());
+    } catch (e) {
+      log('Update profile exception: $e');
+      return BaseResponseModel(success: false, message: e.toString());
+    }
+  }
+
   // ---------- LOGOUT ----------
   Future<void> logout() async {
+    try {
+      await FcmService().unregisterTokenFromBackend();
+    } catch (e) {
+      log("Error unregistering FCM token on logout: $e");
+    }
     await LocalStorageApp().clearAuthData();
   }
 }

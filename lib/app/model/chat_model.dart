@@ -4,6 +4,8 @@ class ChatMessageModel {
   final String senderId;
   final String content;
   final String username;
+  final String name;
+  final String profileImageUrl;
   final DateTime createdAt;
   final bool isMe;
 
@@ -13,6 +15,8 @@ class ChatMessageModel {
     required this.senderId,
     required this.content,
     required this.username,
+    required this.name,
+    required this.profileImageUrl,
     required this.createdAt,
     required this.isMe,
   });
@@ -44,6 +48,8 @@ class ChatMessageModel {
       senderId: sId,
       content: json['content'] as String? ?? json['message'] as String? ?? '',
       username: json['username'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      profileImageUrl: json['profile_image_url'] as String? ?? '',
       createdAt: time.toLocal(),
       isMe: sId == currentUserId,
     );
@@ -56,6 +62,8 @@ class ChatMessageModel {
       'sender_id': senderId,
       'content': content,
       'username': username,
+      'name': name,
+      'profile_image_url': profileImageUrl,
       'created_at': createdAt.toIso8601String(),
     };
   }

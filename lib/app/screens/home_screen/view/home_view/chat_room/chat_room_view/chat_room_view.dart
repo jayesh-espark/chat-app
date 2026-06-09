@@ -204,75 +204,168 @@ class ChatBubble extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final isMe = message.isMe;
 
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        child: Column(
-          crossAxisAlignment:
-              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            if (!isMe) ...[
-              Padding(
-                padding: const EdgeInsets.only(left: 8, bottom: 4),
-                child: Text(
-                  message.username.isEmpty ? 'User' : message.username,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
+    final displayName = message.name.isNotEmpty
+        ? message.name
+        : (message.username.isNotEmpty ? message.username : 'User');
+    final hasImage = message.profileImageUrl.isNotEmpty;
+
+    if (isMe) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(4),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  message.text,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.onPrimary,
+                  ),
+                ),
+              ).animate().fadeIn(duration: 300.ms).scale(
+                    begin: const Offset(0.95, 0.95),
+                    end: const Offset(1, 1),
+                    curve: Curves.easeOut,
+                  ),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  _formatTime(message.timestamp),
+                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                 ),
               ),
             ],
+          ),
+        ),
+      );
+    }
+
+    // Incoming message: Render sender's profile picture and display name next to message
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.85,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            // Sender Avatar
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
+              margin: const EdgeInsets.only(top: 2, right: 8),
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: isMe
-                    ? colorScheme.primary
-                    : (theme.brightness == Brightness.dark
-                        ? colorScheme.surface
-                        : Colors.grey[200]),
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(isMe ? 20 : 4),
-                  bottomRight: Radius.circular(isMe ? 4 : 20),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                color: hasImage ? Colors.transparent : colorScheme.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+                image: hasImage
+                    ? DecorationImage(
+                        image: NetworkImage(message.profileImageUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: !hasImage
+                  ? Center(
+                      child: Text(
+                        displayName[0].toUpperCase(),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : null,
+            ).animate().scale(duration: 250.ms, curve: Curves.easeOut),
+
+            // Message Bubble content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 4),
+                    child: Text(
+                      displayName,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.brightness == Brightness.dark
+                          ? colorScheme.surface
+                          : Colors.grey[200],
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(4),
+                        bottomRight: Radius.circular(20),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      message.text,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.brightness == Brightness.dark
+                            ? colorScheme.onSurface
+                            : Colors.black87,
+                      ),
+                    ),
+                  ).animate().fadeIn(duration: 300.ms).scale(
+                        begin: const Offset(0.95, 0.95),
+                        end: const Offset(1, 1),
+                        curve: Curves.easeOut,
+                      ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      _formatTime(message.timestamp),
+                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+                    ),
                   ),
                 ],
-              ),
-              child: Text(
-                message.text,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: isMe
-                      ? colorScheme.onPrimary
-                      : (theme.brightness == Brightness.dark
-                          ? colorScheme.onSurface
-                          : Colors.black87),
-                ),
-              ),
-            ).animate().fadeIn(duration: 300.ms).scale(
-                  begin: const Offset(0.95, 0.95),
-                  end: const Offset(1, 1),
-                  curve: Curves.easeOut,
-                ),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                _formatTime(message.timestamp),
-                style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
               ),
             ),
           ],

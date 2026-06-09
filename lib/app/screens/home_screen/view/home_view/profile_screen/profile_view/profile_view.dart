@@ -1,5 +1,8 @@
 import 'package:chating_app/app/core/utills/navigation_utils.dart';
 import 'package:chating_app/app/core/widgets/exit_dialog.dart';
+import 'package:chating_app/app/model/user_model.dart';
+import 'package:chating_app/app/network_calls/services/chat_services.dart';
+import 'package:chating_app/app/router/app_routes.dart';
 import 'package:chating_app/app/screens/home_screen/view/home_view/profile_screen/profile_bloc/profile_bloc.dart';
 import 'package:chating_app/app/screens/home_screen/view/home_view/setting_screen/edit_profile_view/edit_profile_view.dart';
 import 'package:chating_app/app/screens/home_screen/view/home_view/setting_screen/setting_view/setting_view.dart';
@@ -7,9 +10,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:loader_overlay/loader_overlay.dart';
 
 class ProfileView extends StatefulWidget {
-  const ProfileView({super.key});
+  final UserModel? otherUser;
+  const ProfileView({super.key, this.otherUser});
 
   @override
   State<ProfileView> createState() => _ProfileViewState();
@@ -19,23 +24,10 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProfileBloc>().add(LoadUserProfileEvent());
-    });
-  }
-
-  String _calculateAge(DateTime? dateOfBirth) {
-    if (dateOfBirth == null) return '';
-    try {
-      final now = DateTime.now();
-      int age = now.year - dateOfBirth.year;
-      if (now.month < dateOfBirth.month ||
-          (now.month == dateOfBirth.month && now.day < dateOfBirth.day)) {
-        age--;
-      }
-      return age.toString();
-    } catch (e) {
-      return '';
+    if (widget.otherUser == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<ProfileBloc>().add(LoadUserProfileEvent());
+      });
     }
   }
 
@@ -48,21 +40,20 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
-  String _formatBirthday(DateTime? dateOfBirth) {
-    if (dateOfBirth == null) return '';
-    try {
-      return DateFormat('MMM dd').format(dateOfBirth);
-    } catch (e) {
-      return '';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final bloc = context.read<ProfileBloc>();
 
+    // 1. If otherUser is provided, render static profile directly (no ProfileBloc/BlocConsumer needed)
+    if (widget.otherUser != null) {
+      return Scaffold(
+        backgroundColor: colorScheme.surface,
+        body: _buildProfileContent(context, widget.otherUser!),
+      );
+    }
+
+    // 2. Self profile: Requires ProfileBloc for loading/updating state
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: BlocConsumer<ProfileBloc, ProfileState>(
@@ -77,282 +68,306 @@ class _ProfileViewState extends State<ProfileView> {
           }
         },
         builder: (context, state) {
-          // Get user data from bloc
-          final userModel = bloc.userModel;
-          final joinDate = _formatDate(userModel?.createdAt);
-          final email = userModel?.email ?? '';
-          final username = userModel?.username ?? '';
-
-          return CustomScrollView(
-            slivers: [
-              // Animated App Bar with gradient
-              SliverAppBar(
-                expandedHeight: 280,
-                pinned: true,
-                stretch: true,
-                backgroundColor: colorScheme.primary,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Gradient Background
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              colorScheme.primary,
-                              colorScheme.secondary,
-                              colorScheme.tertiary,
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Decorative circles
-                      Positioned(
-                        top: -50,
-                        right: -50,
-                        child: Container(
-                          width: 200,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.1),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: -30,
-                        left: -30,
-                        child: Container(
-                          width: 150,
-                          height: 150,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.1),
-                          ),
-                        ),
-                      ),
-                      // Profile Avatar
-                      Positioned(
-                        bottom: 20,
-                        left: 0,
-                        right: 0,
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 4,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 20,
-                                    spreadRadius: 5,
-                                  ),
-                                ],
-                              ),
-                              child: CircleAvatar(
-                                radius: 60,
-                                backgroundColor: colorScheme.surface,
-                                child: Icon(
-                                  Icons.person,
-                                  color: colorScheme.onSurface,
-                                  size: 70,
-                                ),
-                              ),
-                            ).animate().scale(
-                              delay: 200.ms,
-                              duration: 600.ms,
-                              curve: Curves.elasticOut,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Profile Content
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    // Name with animation
-                    Text(
-                          username,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            color: colorScheme.onSurface,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(delay: 300.ms, duration: 500.ms)
-                        .slideY(begin: 0.3, end: 0, curve: Curves.easeOut),
-
-                    const SizedBox(height: 8),
-
-                    // Email with icon
-                    if (email.isNotEmpty)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.email_outlined,
-                            size: 16,
-                            color: colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            email,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colorScheme.onSurface.withOpacity(0.7),
-                            ),
-                          ),
-                        ],
-                      ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
-
-                    const SizedBox(height: 24),
-
-                    // Member Since Card
-                    if (joinDate.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: _buildFullWidthCard(
-                          context,
-                          icon: Icons.person_add_outlined,
-                          label: 'Member Since',
-                          value: joinDate,
-                          delay: 500,
-                        ),
-                      ),
-
-                    const SizedBox(height: 24),
-
-                    // Action Buttons
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        children: [
-                          _buildActionButton(
-                            context,
-                            icon: Icons.edit_outlined,
-                            label: 'Edit Profile',
-                            onTap: () {
-                              navigateTo(context, EditProfileScreen());
-                            },
-                            delay: 800,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildActionButton(
-                            context,
-                            icon: Icons.settings_outlined,
-                            label: 'Settings',
-                            onTap: () {
-                              navigateTo(context, SettingsScreen());
-                            },
-                            delay: 900,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildActionButton(
-                            context,
-                            icon: Icons.help_outline,
-                            label: 'Help & Support',
-                            onTap: () {
-                              // Add help action
-                            },
-                            delay: 1000,
-                          ),
-                          const SizedBox(height: 12),
-
-                          _buildActionButton(
-                            context,
-                            icon: Icons.logout,
-                            label: 'Log Out',
-                            onTap: () {
-                              bloc.add(LogoutUserEvent());
-                            },
-                            delay: 900,
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-                  ],
-                ),
-              ),
-            ],
-          );
+          final bloc = context.read<ProfileBloc>();
+          return _buildProfileContent(context, bloc.userModel);
         },
       ),
     );
   }
 
-  Widget _buildInfoCard(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    required int delay,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+  /// Helper to build the profile page structure using a given UserModel
+  Widget _buildProfileContent(BuildContext context, UserModel? userModel) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final joinDate = _formatDate(userModel?.createdAt);
+    final email = userModel?.email ?? '';
+    final username = userModel?.username ?? '';
+    final displayName = userModel?.name ?? '';
+    final profileImageUrl = userModel?.profileImageUrl ?? '';
+
+    return CustomScrollView(
+      slivers: [
+        // Animated App Bar with gradient
+        SliverAppBar(
+          expandedHeight: 280,
+          pinned: true,
+          stretch: true,
+          backgroundColor: colorScheme.primary,
+          leading: widget.otherUser != null
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                )
+              : null,
+          flexibleSpace: FlexibleSpaceBar(
+            background: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Gradient Background
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        colorScheme.primary,
+                        colorScheme.secondary,
+                        colorScheme.tertiary,
+                      ],
+                    ),
+                  ),
+                ),
+                // Decorative circles
+                Positioned(
+                  top: -50,
+                  right: -50,
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.1),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: -30,
+                  left: -30,
+                  child: Container(
+                    width: 150,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.1),
+                    ),
+                  ),
+                ),
+                // Profile Avatar
+                Positioned(
+                  bottom: 20,
+                  left: 0,
+                  right: 0,
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 4,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 60,
+                          backgroundColor: colorScheme.surface,
+                          backgroundImage: profileImageUrl.isNotEmpty
+                              ? NetworkImage(profileImageUrl)
+                              : null,
+                          child: profileImageUrl.isEmpty
+                              ? Icon(
+                                  Icons.person,
+                                  color: colorScheme.onSurface,
+                                  size: 70,
+                                )
+                              : null,
+                        ),
+                      ).animate().scale(
+                        delay: 200.ms,
+                        duration: 600.ms,
+                        curve: Curves.elasticOut,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+        ),
+
+        // Profile Content
+        SliverToBoxAdapter(
           child: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 28),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+              // Display Name or Username
               Text(
-                value,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
+                    displayName.isNotEmpty ? displayName : username,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                  .animate()
+                  .fadeIn(delay: 300.ms, duration: 500.ms)
+                  .slideY(begin: 0.3, end: 0, curve: Curves.easeOut),
+
+              if (displayName.isNotEmpty && username.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '@$username',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ).animate().fadeIn(delay: 350.ms, duration: 500.ms),
+              ],
+
+              const SizedBox(height: 8),
+
+              // Email with icon
+              if (email.isNotEmpty)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.email_outlined,
+                      size: 16,
+                      color: colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      email,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+
+              const SizedBox(height: 24),
+
+              // Member Since Card
+              if (joinDate.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildFullWidthCard(
+                    context,
+                    icon: Icons.person_add_outlined,
+                    label: 'Member Since',
+                    value: joinDate,
+                    delay: 500,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurface.withOpacity(0.6),
+
+              const SizedBox(height: 24),
+
+              // Action Buttons (Different for self profile vs other user profile)
+              if (widget.otherUser != null)
+                // Other user's profile: Show Send Message / Chat button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      icon: const Icon(Icons.chat_bubble_outline),
+                      label: const Text(
+                        'Chat',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: () async {
+                        context.loaderOverlay.show();
+                        try {
+                          final room = await ChatServices().createOrGetDirectMessageRoom(userModel!.id);
+                          if (context.mounted) {
+                            context.loaderOverlay.hide();
+                            if (room != null) {
+                              navigateToNamed(
+                                context,
+                                AppRoutes.chatBubbleScreen,
+                                arguments: {
+                                  "roomId": room.id,
+                                  "roomName": room.name,
+                                },
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to open chat room'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            context.loaderOverlay.hide();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ).animate().fadeIn(delay: 600.ms).scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1))
+              else
+                // Self profile: Show edit profile, settings, logout, etc.
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      _buildActionButton(
+                        context,
+                        icon: Icons.edit_outlined,
+                        label: 'Edit Profile',
+                        onTap: () {
+                          navigateTo(context, const EditProfileScreen());
+                        },
+                        delay: 800,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionButton(
+                        context,
+                        icon: Icons.settings_outlined,
+                        label: 'Settings',
+                        onTap: () {
+                          navigateTo(context, const SettingsScreen());
+                        },
+                        delay: 900,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionButton(
+                        context,
+                        icon: Icons.logout,
+                        label: 'Log Out',
+                        onTap: () {
+                          context.read<ProfileBloc>().add(LogoutUserEvent());
+                        },
+                        delay: 1000,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
                 ),
-              ),
+
+              const SizedBox(height: 32),
             ],
           ),
-        )
-        .animate()
-        .fadeIn(delay: delay.ms, duration: 500.ms)
-        .scale(
-          begin: const Offset(0.8, 0.8),
-          end: const Offset(1, 1),
-          curve: Curves.easeOut,
-        );
+        ),
+      ],
+    );
   }
 
   Widget _buildFullWidthCard(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:chating_app/app/model/base_response.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:chating_app/app/app_services/fcm_services.dart';
 import '../../../core/utills/app_images.dart';
 import '../../../network_calls/services/auth_services.dart';
 
@@ -157,6 +158,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       event.password,
     );
     if (responseModel.success) {
+      unawaited(FcmService().registerToken());
       emit(LoginSuccessState(message: responseModel.message));
     } else {
       emit(LoginErrorOccurredState(message: responseModel.message));
@@ -222,6 +224,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       event.password,
     );
     if (responseModel.success) {
+      unawaited(FcmService().registerToken());
       emit(SignUpSuccessState(message: responseModel.message));
     } else {
       emit(SignUpErrorOccurredState(message: responseModel.message));

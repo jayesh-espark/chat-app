@@ -66,6 +66,18 @@ class LocalStorageApp {
     }
   }
 
+  Future<void> saveFcmToken(String token) async {
+    await _storage.write(key: AppConstants.keyFcmToken, value: token);
+  }
+
+  Future<String> getFcmToken() async {
+    try {
+      return await _storage.read(key: AppConstants.keyFcmToken) ?? "";
+    } catch (_) {
+      return "";
+    }
+  }
+
   Future<void> clearAuthData() async {
     await _storage.deleteAll();
   }

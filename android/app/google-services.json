@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1035446573298",
+    "project_id": "chat-fcm-flutter",
+    "storage_bucket": "chat-fcm-flutter.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1035446573298:android:579875c43d74b9389c186b",
+        "android_client_info": {
+          "package_name": "com.espark.chating_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDIg_bMYAFosm8J4fwDprIhBHWzlhTofcc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

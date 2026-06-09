@@ -1,5 +1,14 @@
+import 'dart:io';
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../../../../core/storage/local_storage.dart';
+import '../../../../../../model/user_model.dart';
+import '../../../../../../network_calls/services/auth_services.dart';
+import '../../../../../../network_calls/services/upload_service.dart';
+import '../../profile_screen/profile_bloc/profile_bloc.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -10,40 +19,218 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
+  
+  File? _selectedImage;
+  String _currentProfileImageUrl = "";
   bool _isSaving = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final user = await LocalStorageApp().getUser();
+      if (user != null) {
+        setState(() {
+          _nameController.text = user.name;
+          _usernameController.text = user.username;
+          _emailController.text = user.email;
+          _currentProfileImageUrl = user.profileImageUrl;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      log("Error loading user data: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
+    _nameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
     super.dispose();
   }
 
-  void _saveProfile() {
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 70,
+        maxWidth: 500,
+        maxHeight: 500,
+      );
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      log("Error picking image: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to pick image')),
+      );
+    }
+  }
+
+  void _showImageSourceActionSheet() {
+    final colorScheme = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Select Profile Photo Source',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildSourceButton(
+                    icon: Icons.photo_library_outlined,
+                    label: 'Gallery',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.gallery);
+                    },
+                  ),
+                  _buildSourceButton(
+                    icon: Icons.camera_alt_outlined,
+                    label: 'Camera',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.camera);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSourceButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 100,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: colorScheme.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colorScheme.primary.withOpacity(0.1)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 32, color: colorScheme.primary),
+            const SizedBox(height: 8),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isSaving = true;
       });
 
-      // Simulate save operation (simulated update profile)
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        if (!mounted) return;
-        setState(() {
-          _isSaving = false;
-        });
+      String profileImageUrl = _currentProfileImageUrl;
+
+      // 1. Upload image if selected
+      if (_selectedImage != null) {
+        final uploadedUrl = await UploadService().uploadImage(_selectedImage!);
+        if (uploadedUrl == null) {
+          setState(() {
+            _isSaving = false;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to upload image. Please try again.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+        profileImageUrl = uploadedUrl;
+      }
+
+      // 2. Update profile data on backend
+      final name = _nameController.text.trim();
+      final response = await AuthServices().updateProfile(name, profileImageUrl);
+
+      setState(() {
+        _isSaving = false;
+      });
+
+      if (!mounted) return;
+
+      if (response.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Profile updated successfully!'),
+            content: Text(response.message),
             behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.green,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
           ),
         );
+
+        // Notify ProfileBloc to refresh profile screen
+        try {
+          context.read<ProfileBloc>().add(LoadUserProfileEvent());
+        } catch (e) {
+          log("Could not find ProfileBloc in context to reload user: $e");
+        }
+
         Navigator.pop(context);
-      });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -52,13 +239,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: colorScheme.primary),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           // Animated App Bar
           SliverAppBar(
-            expandedHeight: 200,
+            expandedHeight: 220,
             pinned: true,
             stretch: true,
             backgroundColor: colorScheme.primary,
@@ -107,31 +302,65 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     left: 130,
                     right: 130,
                     child: Stack(
-                      alignment: AlignmentGeometry.bottomLeft,
+                      alignment: Alignment.bottomRight,
                       children: [
                         Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: colorScheme.primary,
+                              color: Colors.white,
                               width: 3,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: CircleAvatar(
-                            radius: 60,
+                            radius: 55,
                             backgroundColor: colorScheme.surface,
-                            child: Icon(
-                              Icons.person,
-                              size: 60,
-                              color: colorScheme.onSurface.withOpacity(0.5),
-                            ),
+                            backgroundImage: _selectedImage != null
+                                ? FileImage(_selectedImage!) as ImageProvider
+                                : (_currentProfileImageUrl.isNotEmpty
+                                    ? NetworkImage(_currentProfileImageUrl) as ImageProvider
+                                    : null),
+                            child: _selectedImage == null && _currentProfileImageUrl.isEmpty
+                                ? Icon(
+                                    Icons.person,
+                                    size: 55,
+                                    color: colorScheme.onSurface.withOpacity(0.5),
+                                  )
+                                : null,
                           ),
                         ).animate().scale(
                               delay: 100.ms,
                               duration: 600.ms,
                               curve: Curves.elasticOut,
                             ),
+                        Positioned(
+                          right: 4,
+                          bottom: 4,
+                          child: InkWell(
+                            onTap: _showImageSourceActionSheet,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                size: 18,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -148,39 +377,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    const SizedBox(height: 32),
-                    // Username Field
+                    const SizedBox(height: 24),
+                    
+                    // Display Name (mapped to name API field)
                     _buildTextField(
-                      controller: _usernameController,
-                      label: 'Username',
-                      icon: Icons.person_outline,
+                      controller: _nameController,
+                      label: 'Display Name',
+                      icon: Icons.badge_outlined,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your username';
+                          return 'Please enter your display name';
                         }
                         return null;
                       },
-                      delay: 200,
+                      delay: 150,
                     ),
 
                     const SizedBox(height: 16),
 
-                    // Email Field
+                    // Username Field (disabled/read-only or informative)
+                    _buildTextField(
+                      controller: _usernameController,
+                      label: 'Username',
+                      icon: Icons.person_outline,
+                      enabled: false,
+                      delay: 250,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Email Field (read-only)
                     _buildTextField(
                       controller: _emailController,
                       label: 'Email',
                       icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                      delay: 300,
+                      enabled: false,
+                      delay: 350,
                     ),
 
                     const SizedBox(height: 32),
@@ -246,6 +478,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     String? Function(String?)? validator,
     TextInputType? keyboardType,
     int maxLines = 1,
+    bool enabled = true,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     return TextFormField(
@@ -254,11 +487,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
+      enabled: enabled,
+      style: TextStyle(
+        color: enabled ? colorScheme.onSurface : colorScheme.onSurface.withOpacity(0.6),
+      ),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: colorScheme.primary),
+        prefixIcon: Icon(icon, color: enabled ? colorScheme.primary : colorScheme.outline),
         filled: true,
-        fillColor: colorScheme.surface,
+        fillColor: enabled ? colorScheme.surface : colorScheme.surface.withOpacity(0.5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
@@ -269,6 +506,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
             color: colorScheme.outline.withOpacity(0.2),
+          ),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.outline.withOpacity(0.1),
           ),
         ),
         focusedBorder: OutlineInputBorder(

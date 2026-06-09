@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 
 import '../../../../widgets/chat_widget.dart';
+import '../../profile_screen/profile_view/profile_view.dart';
 import '../new_chat_bloc/new_chat_bloc.dart';
 
 class AddNewChatView extends StatefulWidget {
@@ -262,8 +263,7 @@ class _AddNewChatViewState extends State<AddNewChatView> {
                       return ChatTile(
                         userModel: user,
                         onTap: () {
-                          // Allow starting room named after user's username
-                          context.read<NewChatBloc>().add(CreateRoomEvent(user.username));
+                          navigateTo(context, ProfileView(otherUser: user));
                         },
                       )
                       .animate()

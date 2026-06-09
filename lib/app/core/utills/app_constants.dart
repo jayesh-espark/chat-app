@@ -7,4 +7,5 @@ class AppConstants {
   static const String keyUserToken = "user_token";
 
   static const String keyBioMatricAuth = "bio_auth";
+  static const String keyFcmToken = "fcm_token";
 }

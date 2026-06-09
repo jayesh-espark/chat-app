@@ -29,13 +29,8 @@ class AppRouter {
         );
       case AppRoutes.homeScreen:
         return MaterialPageRoute(
-          builder: (_) => MultiBlocProvider(
-            providers: [
-              BlocProvider<CurrentChatsBloc>(
-                create: (context) => CurrentChatsBloc(),
-              ),
-              BlocProvider<ProfileBloc>(create: (context) => ProfileBloc()),
-            ],
+          builder: (_) => BlocProvider<CurrentChatsBloc>(
+            create: (context) => CurrentChatsBloc(),
             child: HomeView(),
           ),
         );

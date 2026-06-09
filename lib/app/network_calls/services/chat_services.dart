@@ -106,4 +106,34 @@ class ChatServices {
       return [];
     }
   }
+
+  // ---------- CREATE OR GET DM ROOM ----------
+  Future<ChatRoomModel?> createOrGetDirectMessageRoom(String receiverId) async {
+    try {
+      final token = await LocalStorageApp().getAuthToken();
+      if (token.isEmpty) return null;
+
+      final url = Uri.parse('${AppConfig.apiBaseUrl}/chat/rooms/dm');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'receiverId': receiverId}),
+      );
+
+      log("Create DM room response: ${response.body}");
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['status'] == 'success') {
+          return ChatRoomModel.fromJson(body['data']['room']);
+        }
+      }
+      return null;
+    } catch (e) {
+      log("Error creating/getting DM room: $e");
+      return null;
+    }
+  }
 }
